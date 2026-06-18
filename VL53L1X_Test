@@ -1,0 +1,45 @@
+#include <Wire.h>
+#include <VL53L1X.h>
+
+VL53L1X sensor;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);                    // Important: Give time for Serial Monitor
+  
+  Serial.println("\n\n=== VL53L1X Distance Sensor Test ===");
+  
+  Wire.begin(21, 22);             // SDA=21, SCL=22 on ESP32
+  Wire.setClock(400000);          // 400 kHz I2C (recommended)
+
+  sensor.setTimeout(500);         // Timeout in ms
+  
+  if (!sensor.init()) {
+    Serial.println("❌ Failed to detect and initialize VL53L1X sensor!");
+    Serial.println("Check wiring (VIN, GND, SDA, SCL) and power.");
+    while (1);                    // Stop here
+  }
+
+  Serial.println("✅ VL53L1X Sensor Found Successfully!");
+  
+  sensor.setDistanceMode(VL53L1X::Long);        // Short, Medium, or Long
+  sensor.setMeasurementTimingBudget(50000);     // 50 ms (increase for better accuracy)
+  sensor.startContinuous(50);                   // Read every 50 ms
+  
+  Serial.println("Starting continuous readings...\n");
+}
+
+void loop() {
+  Serial.print("Distance: ");
+  Serial.print(sensor.read());
+  
+  if (sensor.timeoutOccurred()) {
+    Serial.print("  (TIMEOUT!)");
+  } else {
+    Serial.print(" mm");
+  }
+  
+  Serial.println();
+  
+  delay(200);   // Update rate - you can make it faster
+}
