@@ -62,7 +62,7 @@ Ensure you have the ESP-IDF framework (v5.0+) installed and configured on your m
 Step 2: Injecting the Neural Network
 If you are updating the vision model, you must drop in the new C++ library from Edge Impulse:
 
-Train a YOLO-Pro Pico model (160x160 Grayscale or RGB) in Edge Impulse.
+Train a YOLO-Pro Pico model (96x96 RGB) in Edge Impulse.
 
 Export it as an Unversioned C++ Library.
 
@@ -76,9 +76,9 @@ WARNING: If you skip this step, the Tensor Arena will spill into PSRAM, disablin
 Open your terminal and run:
 idf.py menuconfig
 
-Apply the following specific settings to enable SRAM Eviction:
+Apply the following precise configurations to enforce hardware acceleration and optimize the memory footprint:
 
-Enable PSRAM malloc() Routing:
+Enable & Optimize PSRAM (Octal SPI Routing):
 
 Navigate to: Component config ➔ ESP PSRAM (or ESP32S3-Specific).
 
@@ -88,19 +88,27 @@ Enable: Make RAM allocatable using malloc() as well.
 
 Set: PSRAM clock speed to 80 MHz.
 
-Evict the Networking Stack:
+Set: Support Octal PSRAM to Enabled (Ensure this matches your physical ESP32-S3 chip type, such as the WROOM-1 or EYE modules utilizing high-bandwidth 8-line Octal SPI instead of Quad SPI).
 
-Navigate to: Component config ➔ Wi-Fi
+Force Network Stack SRAM Eviction:
 
-Enable: Try to allocate memories of Wifi and LWIP in SPIRAM firstly.
+Navigate to: Component config ➔ Wi-Fi.
 
-Optimize the Compiler:
+Enable: Try to allocate memories of Wifi and LWIP in SPIRAM firstly. If failed, allocate internal memory.
 
-Navigate to: Compiler Options
+Impact: This forcefully kicks the massive LwIP network buffers and Wi-Fi transit ring-buffers out of the internal memory map and onto the external chip, freeing up a contiguous block of internal SRAM exclusively for the AI.
+Navigate to: Component config > ESP System Settings> CPU frequency
+Make CPU frequency 240 MHZ 
 
-Set: Optimization Level to Optimize for performance (-O3).
+Max Out the Compiler Optimization:
 
-Save (S) and Quit (Q).
+Navigate to: Compiler Options ➔ Optimization Level.
+
+Set: Optimize for performance (-O3).
+
+Impact: Forces the compiler to unroll execution loops, inline inlineable tasks, and fully exploit the Xtensa PIE (Processor Interface Extension) instruction set.
+
+Save your configuration by pressing S, confirm, and exit by pressing Q.
 
 Step 4: Build and Flash
 Clear the CMake cache to ensure the new memory map applies, then compile and flash to the board:
